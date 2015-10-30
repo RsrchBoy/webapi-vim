@@ -126,13 +126,14 @@ function! webapi#http#get(url, ...)
   let getdata = a:0 > 0 ? a:000[0] : {}
   let headdata = a:0 > 1 ? a:000[1] : {}
   let follow = a:0 > 2 ? a:000[2] : 1
+  let hack = a:0 > 3 ? a:000[3] : ""
   let url = a:url
   let getdatastr = webapi#http#encodeURI(getdata)
   if strlen(getdatastr)
     let url .= "?" . getdatastr
   endif
   if executable('curl')
-    let command = printf('curl -q %s -s -k -i', follow ? '-L' : '')
+    let command = printf('curl -q %s %s -s -k -i', follow ? '-L' : '', hack)
     let quote = &shellxquote == '"' ?  "'" : '"'
     for key in keys(headdata)
       if has('win32')
@@ -159,7 +160,12 @@ function! webapi#http#get(url, ...)
     throw "require `curl` or `wget` command"
   endif
   if follow != 0
-    while res =~ '^HTTP/1.\d 3' || res =~ '^HTTP/1\.\d 200 Connection established' || res =~ '^HTTP/1\.\d 100 Continue'
+    while res =~ '^HTTP/1.\d 3'
+                \   || res =~ '^HTTP/1\.\d 200 Connection established'
+                \   || res =~ '^HTTP/1\.\d 100 Continue'
+                \   || res =~ '^HTTP/1\.\d 401 '
+                " \   || res =~ '^HTTP/1\.\d 401 Authorization Required'
+      " echom res
       let pos = stridx(res, "\r\n\r\n")
       if pos != -1
         let res = strpart(res, pos+4)
